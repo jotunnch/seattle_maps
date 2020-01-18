@@ -72,7 +72,7 @@ ggsave("king_county_dudes_by_age.pdf", width = 24, height = 36)
 ```{r}
 median_age_both_sex <- "P013001"
 
-king_mage <- get_decennial(state = "WA", county = "King", geography = "tract", year = 2010, variables = c(median_age = median_age_both_sex), geometry = TRUE, cb = FALSE)
+king_mage <- get_decennial(state = "WA", county = "King", geography = "tract", year = 2010, variables = c(median_age = median_age_both_sex), geometry = TRUE)
 
 king_mage %<>%
   clean_names() %>%
