@@ -1,0 +1,145 @@
+---
+title: "Seattle 2010 Census Data"
+author: "jotunnch"
+date: "December 30, 2019"
+output: html_document
+---
+
+```{r}
+library(tidycensus)
+library(tidyverse)
+library(janitor)
+library(readxl)
+library(ggrepel)
+```
+
+## Testing this out
+```{r}
+v10d_sf1 <- load_variables(year = 2010, dataset = "sf1", cache = TRUE)
+```
+
+
+```{r}
+test <- get_decennial(state = "WA", county = "King", geography = "block", year = 2010, variables = "P012001", geometry = TRUE)
+```
+
+## Folks in Seattle
+
+Set up the table ids
+```{r}
+guyvars <- c(paste0("P01200", 3:9), paste0("P0120", 10:25))
+
+galvars
+
+guy_sumvars <- c("P012001", "P012002")
+
+gal_sumvars
+```
+
+Get the data
+```{r}
+king_guys <- get_decennial(state = "WA", county = "King", geography = "tract", year = 2010, variables = guyvars, summary_var = "P012001", geometry = TRUE)
+```
+
+Clean that data
+```{r}
+king_guys2 <- king_guys %>%
+  left_join(select(v10d_sf1, -concept), by = c("variable" = "name")) %>%
+  separate(label, into = c("count_type", "sex", "age"), sep = "!!") %>%
+  mutate(age = str_replace(age, "Under", "0 to"),
+         age = str_replace(age, "years and over", "to 100 years"), 
+         min_age = as.integer(str_extract(age, "\\d+")),
+         max_age = as.integer(str_extract(age, "\\d+ years$") %>%
+           str_extract("\\d+"))) %>%
+  clean_names()
+```
+
+Quick peak
+```{r}
+king_guys2 %>%
+  mutate(census_tract = str_extract(name, "\\d+\\.?\\d?\\d?")) %>%
+  ggplot(aes(x = census_tract, y = value)) +
+  geom_col() +
+  facet_wrap(~age, nrow = 1) +
+  coord_flip()
+
+ggsave("king_county_dudes_by_age.pdf", width = 24, height = 36)
+```
+
+## EDA
+
+### Median Age
+```{r}
+median_age_both_sex <- "P013001"
+
+king_mage <- get_decennial(state = "WA", county = "King", geography = "tract", year = 2010, variables = c(median_age = median_age_both_sex), geometry = TRUE, cb = FALSE)
+
+king_mage %<>%
+  clean_names() %>%
+  separate(name, into = c("tract", "county", "state"), sep = ",") %>%
+  mutate(tract = str_extract(tract, "\\d+\\.?\\d?\\d?$"),
+         county = str_remove(county, " County"))
+```
+
+Figuring out what census tracts belong to Seattle
+```{r}
+seattle_data <- read_excel("SeattleCensusBlocksandNeighborhoodCorrelationFile.xlsx")
+
+seattle_tracts <- seattle_data %>%
+  clean_names() %>%
+  select(tract_10, urban_village_name, cra_name, neighborhoods_included, neighborhood_district_name) %>%
+  mutate(tract = str_replace(as.character(tract_10), "(\\d+)(\\d\\d)$", "\\1\\.\\2") %>%
+           str_replace("(\\d+)\\.00", "\\1")) %>%
+  select(tract, everything(), -tract_10) %>%
+  filter(tract != "9901") # this is water around vashon island
+```
+
+Combine tables
+```{r}
+seattle_mage <- king_mage %>%
+  semi_join(seattle_tracts, by = "tract")
+
+seattle_mage %>%
+  ggplot(aes(y = value, x = fct_reorder(tract, value))) +
+  geom_point() +
+  coord_flip()
+
+seattle_mage %>%
+  ggplot(aes(x = value)) +
+  geom_histogram(binwidth = 2)
+```
+
+```{r}
+sea_neighs_mage <- seattle_tracts %>%
+  group_by(tract, cra_name) %>%
+  tally() %>%
+  select(-n) %>%
+  right_join(king_mage, by = "tract") %>%
+  filter(!is.na(cra_name))
+
+sea_neighs_mage %>%
+  ggplot(aes(y = value, x = fct_reorder(paste0(tract, ": ", cra_name), value), col = if_else(tract %in% c(86, 87, 90), TRUE, FALSE))) +
+  geom_point() +
+  coord_flip() +
+  theme(legend.position = "none")
+
+sea_neighs_mage %>%
+  ggplot(aes(y = value, x = fct_reorder(tract, value), label = cra_name)) +
+  geom_point() +
+  geom_text(aes(hjust = if_else(value > median(value), 1.1, -0.1))) +
+  coord_flip()
+
+sea_neighs_mage %>%
+  ggplot(aes(y = value, x = fct_reorder(tract, value), label = cra_name)) +
+  geom_point() +
+  geom_text_repel() +
+  coord_flip()
+```
+
+```{r}
+sea_neighs_mage %>%
+  ggplot(aes(fill = value)) +
+  geom_sf() +
+  scale_fill_viridis_c()
+```
+
