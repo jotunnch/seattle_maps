@@ -187,28 +187,5 @@ sea_neighs_mage2 %>%
   theme_bw() +
   labs(fill = "age")
 ```
-No difference, still doesn't have the water
 
-
-```{r}
-ny2 <- get_acs(geography = "tract", 
-              variables = "B19013_001", 
-              state = "NY", 
-              county = "New York", 
-              geometry = TRUE, 
-              cb = FALSE)
-
-st_erase <- function(x, y) {
-  st_difference(x, st_union(st_combine(y), by_feature = TRUE))
-}
-
-ny_water <- area_water("NY", "New York", class = "sf")
-
-ny_erase <- st_erase(ny2, ny_water)
-
-mapview(ny_erase, zcol = "estimate", legend = TRUE)
-
-ny_water2 <- st_combine(ny_water)
-ny_water3 <- st_union(ny_water2)
-```
 
