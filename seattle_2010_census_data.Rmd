@@ -2,7 +2,7 @@
 title: "Seattle 2010 Census Data"
 author: "jotunnch"
 date: "December 30, 2019"
-output: html_document
+output: github_document
 ---
 
 ```{r}
@@ -186,6 +186,17 @@ sea_neighs_mage2 %>%
   scale_fill_viridis_c() +
   theme_bw() +
   labs(fill = "age")
+
+king_mage2_clean %>%
+  ggplot(aes(fill = value)) +
+  geom_sf() +
+  scale_fill_viridis_c() +
+  theme_bw() +
+  labs(fill = "age")
 ```
 
+```{r}
+mapview(sea_neighs_mage2, zcol = "value", legend = TRUE)
+mapview(king_mage2_clean, zcol = "value", legend = TRUE)
+```
 
