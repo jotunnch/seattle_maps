@@ -345,5 +345,24 @@ sea_years_geo %>%
   ggplot() +
   geom_sf() +
   geom_sf_text(aes(label = tract))
+
+sea_sex_dots <- map(c("total_females", "total_males"), function(group) {
+  sea_years_geo_neigh %>%
+    filter(variable == group, year == 2018) %>%
+    st_sample(., size = round(.$estimate / 50)) %>%
+    st_sf() %>%
+    mutate(group = group)
+  }) %>%
+  reduce(rbind)
+
+sea_sex_dots_shuffle <- sample_frac(sea_sex_dots, size = 1)
+
+plot(sea_sex_dots_shuffle, key.pos = 1)
+
+ggplot() +
+  geom_sf(data = sea_years_geo_neigh) +
+  geom_sf(data = sea_sex_dots_shuffle, aes(color = group, fill = group), size = 0.1, alpha = 0.5)
 ```
 
+## density
+thinking of doing a dot plot that moves or grows? could do a line plot
