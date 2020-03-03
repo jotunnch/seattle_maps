@@ -1,0 +1,349 @@
+---
+title: "ACS age"
+author: "jotunnch"
+date: "February 1, 2020"
+output: html_document
+---
+
+```{r}
+library(tidycensus)
+library(tidyverse)
+library(janitor)
+library(readxl)
+library(ggrepel)
+library(mapview)
+library(tigris)
+library(sf)
+options(tigris_use_cache = TRUE)
+library(gganimate)
+```
+
+Did stuff with the 2010 census data and got the data figured out.
+Now going to do the ACS data so I can have more up to date data.
+
+```{r}
+
+v18 <- load_variables(2018, "acs5", cache = TRUE)
+
+total_med_age <- "B01002_001"
+
+king19 <- get_acs(geography = "tract", variables = c(median_age = total_med_age), state = "WA", county = "King", geometry = TRUE, keep_geo_vars = TRUE)
+
+
+```
+
+Make some quick functions
+```{r}
+clean_census <- function(x, remove_king_water = TRUE) {
+  
+  if (remove_king_water) {
+    x <- remove_water(x)
+  }
+  
+  x %>%
+  clean_names() %>%
+  separate(name_y, into = c("tract", "county", "state"), sep = ",") %>%
+  mutate(tract = str_extract(tract, "\\d+\\.?\\d?\\d?$"),
+         county = str_remove(county, " County"))
+}
+
+make_seattle_only <- function(x) {
+  seattle_data <- read_excel("SeattleCensusBlocksandNeighborhoodCorrelationFile.xlsx")
+
+  seattle_tracts <- seattle_data %>%
+    clean_names() %>%
+    select(tract_10, urban_village_name, cra_name, neighborhoods_included, neighborhood_district_name) %>%
+    mutate(tract = str_replace(as.character(tract_10), "(\\d+)(\\d\\d)$", "\\1\\.\\2") %>%
+             str_replace("(\\d+)\\.00", "\\1")) %>%
+    select(tract, everything(), -tract_10) %>%
+    filter(tract != "9901") # this is water around vashon island
+
+  x %>%
+  semi_join(seattle_tracts, by = "tract")
+}
+
+remove_water <- function(x) {
+  # get the water
+  king_water <- area_water("WA", "King", class = "sf")
+  
+  st_difference(x, st_union(st_combine(king_water), by_feature = TRUE))
+}
+```
+
+Check function
+```{r}
+cking19 <- king19 %>%
+  clean_census()
+```
+
+```{r}
+cking19
+
+sea_mage19 <- make_seattle_only(cking19)
+
+sea_mage19
+```
+
+```{r}
+sea_mage19 %>%
+  ggplot(aes(fill = estimate)) +
+  geom_sf() +
+  scale_fill_viridis_c() +
+  theme_bw() +
+  labs(fill = "age")
+
+cking19 %>%
+  ggplot(aes(fill = estimate)) +
+  geom_sf() +
+  scale_fill_viridis_c() +
+  theme_bw() +
+  labs(fill = "age")
+```
+
+## Going to try and grab multiple years
+```{r}
+total_med_age <- "B01002_001"
+total_males <- "B01001_002"
+total_females <- "B01001_026"
+total_count <- "B01001_001"
+
+all_years <- c(2011:2018)
+
+king_years <- map(all_years, function(x) {
+  get_acs(geography = "tract", variables = c(median_age = total_med_age,
+                                             total_count = total_count,
+                                             total_males = total_males,
+                                             total_females = total_females),
+          state = "WA", county = "King", 
+          geometry = TRUE, keep_geo_vars = TRUE, year = x)
+}
+)
+```
+
+```{r}
+cl_king_years <- king_years %>%
+  map(clean_census)
+
+sea_years <- cl_king_years %>%
+  map(make_seattle_only) %>%
+  map2(all_years, function(x, y) {
+    x %>%
+      mutate(year = y) %>%
+      select(year, tract, county, state, variable, estimate, moe, geometry)
+  })
+
+sea_years <- do.call(rbind, sea_years)
+  
+```
+
+```{r}
+sea_years %>%
+  filter(variable == "median_age") %>%
+  ggplot(aes(fill = estimate)) +
+  geom_sf() +
+  scale_fill_viridis_c() +
+  theme_bw() +
+  labs(fill = "age") +
+  facet_wrap(~year)
+
+ggsave("age_over_time.pdf", height = 9, width = 9)
+```
+
+I'm going to add in some more variables: counts for males and females.
+```{r}
+sea_years %>%
+  filter(variable == "total_count") %>%
+  ggplot(aes(fill = estimate)) +
+  geom_sf() +
+  scale_fill_viridis_c(option = "magma") +
+  theme_bw() +
+  labs(fill = "population") +
+  facet_wrap(~year)
+
+ggsave("total_count_over_time.pdf", height = 9, width = 9)
+  
+```
+
+Going to try this with gganimate
+Geometries are changing over time, need to standardize these.
+```{r}
+sea_years_geo <- sea_years %>%
+  filter(year == "2018") %>%
+  select(tract, geometry) %>%
+  distinct(tract, keep.all = TRUE) %>%
+  right_join(st_drop_geometry(sea_years), by = "tract")
+  
+
+sea_years_geo %>%
+  filter(variable == "total_count") %>%
+  ggplot(aes(fill = estimate)) +
+  geom_sf() +
+  scale_fill_viridis_c(option = "magma") +
+  theme_bw() +
+  labs(fill = "population", title = "Changing Times: Seattle Population", subtitle = "Year: {closest_state} (Frame {frame} of {nframes}", caption = "American Community Survey") +
+  transition_states(year,
+                   transition_length = 2,
+                   state_length = 1) +
+  enter_fade()
+  
+
+anim_save("test.gif")
+```
+
+```{r}
+sea_years_geo %>%
+  filter(variable == "total_count", year == "2018") %>%
+  ggplot(aes(fill = estimate)) +
+  geom_sf() +
+  scale_fill_viridis_c(option = "magma") +
+  theme_bw() +
+  labs(fill = "population", title = "Seattle Population", subtitle = "Year: 2018", caption = "American Community Survey") +
+  annotate(geom = "curve", x = , y = , xend = , yend = ,
+           curvature = 0.3, arrow = arrow(length = unit(2, "mm")))
+  annotate(geom = "text", x = , y = , label = "ballard", hjust =)
+```
+
+
+
+```{r}
+sea_years %>%
+  filter(variable == "total_count", year == "2018") %>%
+  mapview(zcol = "estimate", legend = TRUE)
+```
+
+## Look at neighborhoods that are changing
+```{r}
+ 
+seattle_data <- read_excel("SeattleCensusBlocksandNeighborhoodCorrelationFile.xlsx")
+
+seattle_tracts <- seattle_data %>%
+  clean_names() %>%
+  select(tract_10, urban_village_name, cra_name, neighborhoods_included, neighborhood_district_name) %>%
+  mutate(tract = str_replace(as.character(tract_10), "(\\d+)(\\d\\d)$", "\\1\\.\\2") %>%
+           str_replace("(\\d+)\\.00", "\\1")) %>%
+  select(tract, everything(), -tract_10) %>%
+  filter(tract != "9901") %>% # this is water around vashon island
+  group_by(tract, cra_name) %>%
+  tally() %>%
+  select(-n) %>%
+  ungroup()
+```
+
+```{r}
+sea_years_geo %>%
+  filter(year == 2018, variable == "total_count") %>%
+  left_join(seattle_tracts, by = "tract") %>%
+  ggplot(aes(y = estimate, x = fct_reorder(tract, estimate))) +
+  geom_col() +
+  geom_errorbar(aes(ymin = estimate - moe, ymax = estimate + moe)) +
+  coord_flip()
+  
+```
+
+```{r}
+sea_years_geo_neigh <- sea_years_geo %>%
+  left_join(seattle_tracts, by = "tract")
+
+sea_years_geo_neigh %>%
+  filter(year == 2018, variable == "total_count") %>%
+  ggplot(aes(y = estimate, x = fct_reorder(tract, estimate))) +
+  geom_point(col = "green") +
+  geom_errorbar(aes(ymin = estimate - moe, ymax = estimate + moe)) +
+  geom_point(data = filter(sea_years_geo_neigh, year == 2011, variable == "total_count"), col = "blue") +
+  geom_errorbar(data = filter(sea_years_geo, year == 2011, variable == "total_count"), aes(ymin = estimate - moe, ymax = estimate + moe)) +
+  coord_flip()
+
+sea_years_geo_neigh %>%
+  filter(year == 2011 | year == 2018, variable == "total_count") %>%
+  ggplot(aes(y = estimate, x = fct_reorder(tract, estimate, max), col = as.factor(year), label = cra_name)) +
+  geom_point() +
+  geom_text_repel(data = filter(sea_years_geo_neigh, year == 2011 | year == 2018, variable == "total_count") %>% arrange(tract, -estimate) %>% distinct(tract, .keep_all = TRUE), hjust = 1) +
+  coord_flip()
+
+ggsave("test.pdf", width = 12, height = 12)
+
+sea_years_diff <- sea_years_geo_neigh %>%
+  filter(year == 2011 | year == 2018, variable == "total_count") %>%
+  select(-moe) %>%
+  spread(key = year, value = estimate) %>%
+  clean_names() %>%
+  mutate(count_diff = x2018 - x2011,
+         prc_count_incr = count_diff/x2011*100) %>%
+  arrange(-count_diff) 
+
+top10_count_diff <- sea_years_diff %>%
+  pull(tract) %>%
+  .[1:10]
+
+sea_years_geo_neigh %>%
+  filter(year == 2011 | year == 2018, variable == "total_count") %>%
+  ggplot(aes(y = estimate, x = fct_reorder(tract, estimate*(year == 2011), max), label = cra_name)) +
+  geom_col() +
+  coord_flip() +
+  transition_states(year,
+                    transition_length = 2,
+                    state_length = 1)
+```
+
+```{r}
+top10_count_each_year <- sea_years_geo_neigh %>%
+  filter(variable == "total_count") %>%
+  group_by(year) %>%
+  mutate(rank = rank(-estimate)) %>%
+  filter(rank <= 10) %>%
+  pull(tract) %>%
+  unique()
+  
+
+bar_anim <- sea_years_geo_neigh %>%
+  filter(variable == "total_count", tract %in% top10_count_each_year) %>%
+  group_by(year) %>%
+  mutate(rank = rank(-estimate),
+         est_label = as.character(round(estimate))) %>%
+  ungroup() %>%
+  ggplot() +
+  geom_tile(aes(x = rank,
+                y = estimate/2, 
+                height = estimate,
+                fill = as.factor(tract)
+                ),
+            width = 0.9,
+            alpha = 0.8) +
+ # geom_text(aes(y = 0, label = paste(tract, " ")), vjust = 0.2, hjust = 1) +
+  geom_text(aes(x = rank, y = estimate, label = est_label), size = 6, hjust = -0.15) +
+  geom_text(aes(x = rank, y = estimate, label = paste0("Tract ", tract, " (", cra_name, ")")), size = 6, color = "white", hjust = 1.05) +
+  coord_flip(clip = "off", expand = FALSE) +
+  scale_x_reverse() +
+  theme_classic() +
+  labs(title = "Seattle: {closest_state}", x = "", y = "ACS population count estimate") +
+  theme(legend.position = "none",
+        axis.ticks.y = element_blank(),
+        axis.text.y = element_blank(),
+        plot.title = element_text(hjust = 0.5, size = 32),
+        plot.margin = margin(0.5, 2, 0.5, 0.5, "cm"),
+        axis.text.x = element_text(size = 18),
+        axis.title.x = element_text(size = 18)) +
+  transition_states(year, transition_length = 2, state_length = 1) +
+  ease_aes("cubic-in-out")
+
+animate(bar_anim, height = 800, width = 500, nframes = 200)
+  
+anim_save("test.gif")  
+```
+
+## Trying dot density plots
+```{r}
+sea_years_geo_neigh %>%
+  mutate(estimate = as.integer(round(estimate))) %>%
+  filter(year == 2018, variable == "total_females") %>%
+  st_sample(., size = round(.$estimate / 100)) %>%
+  st_sf() %>%
+  ggplot() +
+  geom_sf(size = 0.1)
+
+sea_years_geo %>%
+  ggplot() +
+  geom_sf() +
+  geom_sf_text(aes(label = tract))
+```
+
