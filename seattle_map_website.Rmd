@@ -1,0 +1,27 @@
+---
+title: "Interactive Seattle Census Map!"
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file,
+ encoding=encoding,
+ output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
+author: "Jotunn Ciderhouse"
+date: "March 4, 2020"
+output: html_document
+---
+
+```{r results = "hide", message = FALSE}
+library(tidyverse)
+library(mapview)
+library(sf)
+```
+
+
+```{r}
+sea_years_geo <- readRDS("seattle_acs_sf_obj.rds")
+
+sea_years_geo %>%
+  filter(variable == "median_age", year == "2018") %>%
+  mapview(zcol = "estimate", legend = TRUE)
+```
+

@@ -172,35 +172,106 @@ sea_years_geo <- sea_years %>%
   select(tract, geometry) %>%
   distinct(tract, keep.all = TRUE) %>%
   right_join(st_drop_geometry(sea_years), by = "tract")
-  
 
-sea_years_geo %>%
+saveRDS(sea_years_geo, "seattle_acs_sf_obj.rds")  
+
+sea_years_geo_anim <- sea_years_geo %>%
   filter(variable == "total_count") %>%
   ggplot(aes(fill = estimate)) +
   geom_sf() +
   scale_fill_viridis_c(option = "magma") +
   theme_bw() +
-  labs(fill = "population", title = "Changing Times: Seattle Population", subtitle = "Year: {closest_state} (Frame {frame} of {nframes}", caption = "American Community Survey") +
+  labs(fill = "population", title = "Changing Times: Seattle Population", subtitle = "Year: {closest_state}", caption = "By Jotunn Ciderhouse\nData: American Community Survey") +
+  annotate(geom = "curve", x = -122.42, y = 47.54,
+           xend = -122.39, yend = 47.57,
+           curvature = -0.3, arrow = arrow(length = unit(4, "mm"))) +
+  annotate(geom = "text", x = -122.42, y = 47.54, label = "west\nseattle", vjust = 1, size = 8) +
+  annotate(geom = "curve", x = -122.245, y = 47.715,
+           xend = -122.335, yend = 47.68,
+           curvature = -0.3, arrow = arrow(length = unit(4, "mm"))) +
+  annotate(geom = "text", x = -122.245, y = 47.715, label = "green\nlake", vjust = -0.1, size = 8) +
+  annotate(geom = "curve", x = -122.245, y = 47.62,
+           xend = -122.315, yend = 47.62,
+           curvature = -0.1, arrow = arrow(length = unit(4, "mm"))) +
+  annotate(geom = "text", x = -122.245, y = 47.62, label = "capitol hill", vjust = -0.3, size = 8) +
+  annotate(geom = "curve", x = -122.25, y = 47.585,
+           xend = -122.27, yend = 47.57,
+           curvature = -0.1, arrow = arrow(length = unit(4, "mm"))) +
+  annotate(geom = "text", x = -122.25, y = 47.585, label = "columbia\ncity", vjust = -0.1, size = 8) +
+  annotate(geom = "curve", x = -122.24, y = 47.655,
+           xend = -122.295, yend = 47.65,
+           curvature = -0.3, arrow = arrow(length = unit(4, "mm"))) +
+  annotate(geom = "text", x = -122.24, y = 47.655, label = "uw", vjust = -0.3, size = 8) +
+  annotate(geom = "curve", x = -122.42, y = 47.72,
+           xend = -122.3875, yend = 47.67,
+           curvature = 0.4, arrow = arrow(length = unit(4, "mm"))) +
+  annotate(geom = "text", x = -122.42, y = 47.72, label = "ballard", vjust = -0.3, size = 8) +
+  annotate(geom = "curve", x = -122.425, y = 47.62,
+           xend = -122.3475, yend = 47.62,
+           curvature = 0.2, arrow = arrow(length = unit(4, "mm"))) +
+  annotate(geom = "text", x = -122.425, y = 47.62, label = "south lake\nunion", vjust = -0.1, size = 8) +
+  annotate(geom = "curve", x = -122.375, y = 47.605,
+           xend = -122.3475, yend = 47.61,
+           curvature = 0.1, arrow = arrow(length = unit(4, "mm"))) +
+  annotate(geom = "text", x = -122.375, y = 47.605, label = "downtown", hjust = 1.05, size = 8) +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        plot.title = element_text(size = 32),
+        plot.subtitle = element_text(size = 24),
+        axis.text = element_text(size = 16),
+        legend.title = element_text(size = 20),
+        legend.text = element_text(size = 18)) +
   transition_states(year,
-                   transition_length = 2,
+                   transition_length = 4,
                    state_length = 1) +
   enter_fade()
-  
 
-anim_save("test.gif")
+animate(sea_years_geo_anim, height = 1200, width = 850)  
+
+anim_save("sea_pop_heatmap3.gif")
 ```
+
 
 ```{r}
 sea_years_geo %>%
   filter(variable == "total_count", year == "2018") %>%
-  ggplot(aes(fill = estimate)) +
-  geom_sf() +
+  ggplot() +
+  geom_sf(aes(fill = estimate)) +
   scale_fill_viridis_c(option = "magma") +
   theme_bw() +
-  labs(fill = "population", title = "Seattle Population", subtitle = "Year: 2018", caption = "American Community Survey") +
-  annotate(geom = "curve", x = , y = , xend = , yend = ,
-           curvature = 0.3, arrow = arrow(length = unit(2, "mm")))
-  annotate(geom = "text", x = , y = , label = "ballard", hjust =)
+  labs(fill = "population", title = "Seattle Population", subtitle = "Year: 2018", caption = "By Jotunn Ciderhouse\nData: American Community Survey") +
+  annotate(geom = "curve", x = -122.42, y = 47.54,
+           xend = -122.39, yend = 47.57,
+           curvature = -0.3, arrow = arrow(length = unit(2, "mm"))) +
+  annotate(geom = "text", x = -122.42, y = 47.54, label = "west\nseattle", vjust = 1) +
+  annotate(geom = "curve", x = -122.245, y = 47.715,
+           xend = -122.335, yend = 47.68,
+           curvature = -0.3, arrow = arrow(length = unit(2, "mm"))) +
+  annotate(geom = "text", x = -122.245, y = 47.715, label = "green\nlake", vjust = -0.1) +
+  annotate(geom = "curve", x = -122.245, y = 47.62,
+           xend = -122.315, yend = 47.62,
+           curvature = -0.1, arrow = arrow(length = unit(2, "mm"))) +
+  annotate(geom = "text", x = -122.245, y = 47.62, label = "capitol hill", vjust = -0.3) +
+  annotate(geom = "curve", x = -122.25, y = 47.585,
+           xend = -122.27, yend = 47.57,
+           curvature = -0.1, arrow = arrow(length = unit(2, "mm"))) +
+  annotate(geom = "text", x = -122.25, y = 47.585, label = "columbia\ncity", vjust = -0.1) +
+  annotate(geom = "curve", x = -122.24, y = 47.655,
+           xend = -122.295, yend = 47.65,
+           curvature = -0.3, arrow = arrow(length = unit(2, "mm"))) +
+  annotate(geom = "text", x = -122.24, y = 47.655, label = "uw", vjust = -0.3) +
+  annotate(geom = "curve", x = -122.42, y = 47.72,
+           xend = -122.3875, yend = 47.67,
+           curvature = 0.4, arrow = arrow(length = unit(2, "mm"))) +
+  annotate(geom = "text", x = -122.42, y = 47.72, label = "ballard", vjust = -0.3) +
+  annotate(geom = "curve", x = -122.425, y = 47.62,
+           xend = -122.3475, yend = 47.62,
+           curvature = 0.2, arrow = arrow(length = unit(2, "mm"))) +
+  annotate(geom = "text", x = -122.425, y = 47.62, label = "south lake\nunion", vjust = -0.1) +
+  annotate(geom = "curve", x = -122.375, y = 47.605,
+           xend = -122.3475, yend = 47.61,
+           curvature = 0.1, arrow = arrow(length = unit(2, "mm"))) +
+  annotate(geom = "text", x = -122.375, y = 47.605, label = "downtown", hjust = 1.05)
 ```
 
 
@@ -315,7 +386,8 @@ bar_anim <- sea_years_geo_neigh %>%
   coord_flip(clip = "off", expand = FALSE) +
   scale_x_reverse() +
   theme_classic() +
-  labs(title = "Seattle: {closest_state}", x = "", y = "ACS population count estimate") +
+  labs(title = "Seattle: {closest_state}", x = "", y = "ACS population count estimate",
+       caption = "by Jotunn Ciderhouse") +
   theme(legend.position = "none",
         axis.ticks.y = element_blank(),
         axis.text.y = element_blank(),
@@ -328,23 +400,24 @@ bar_anim <- sea_years_geo_neigh %>%
 
 animate(bar_anim, height = 800, width = 500, nframes = 200)
   
-anim_save("test.gif")  
+anim_save("top10_count_sea_neighborhoods.gif")  
 ```
 
 ## Trying dot density plots
 ```{r}
 sea_years_geo_neigh %>%
-  mutate(estimate = as.integer(round(estimate))) %>%
-  filter(year == 2018, variable == "total_females") %>%
-  st_sample(., size = round(.$estimate / 100)) %>%
-  st_sf() %>%
-  ggplot() +
-  geom_sf(size = 0.1)
-
-sea_years_geo %>%
-  ggplot() +
-  geom_sf() +
-  geom_sf_text(aes(label = tract))
+  filter(variable == "total_females" | variable == "total_males", year == 2018) %>%
+  select(-moe) %>%
+  spread(key = variable, value = estimate) %>%
+  mutate(prop_females = total_females / (total_males + total_females),
+         prop_males = 1 - prop_females,
+         tract = fct_reorder(tract, prop_females, max)) %>%
+  select(-total_females, -total_males) %>%
+  gather(key = "variable", value = "estimate", prop_females, prop_males) %>%
+  ggplot(aes(x = tract, y = estimate, fill = variable)) +
+  geom_col() +
+  geom_hline(yintercept = 0.5) +
+  coord_flip()
 
 sea_sex_dots <- map(c("total_females", "total_males"), function(group) {
   sea_years_geo_neigh %>%
@@ -355,14 +428,194 @@ sea_sex_dots <- map(c("total_females", "total_males"), function(group) {
   }) %>%
   reduce(rbind)
 
-sea_sex_dots_shuffle <- sample_frac(sea_sex_dots, size = 1)
+sea_sex_dots_shuffle <- sample_frac(sea_sex_dots, size = 1) %>%
+  mutate(group = fct_recode(group, Females = "total_females", Males = "total_males"))
 
 plot(sea_sex_dots_shuffle, key.pos = 1)
 
 ggplot() +
   geom_sf(data = sea_years_geo_neigh) +
-  geom_sf(data = sea_sex_dots_shuffle, aes(color = group, fill = group), size = 0.1, alpha = 0.5)
+  geom_sf(data = sea_sex_dots_shuffle, aes(color = group, fill = group), size = 0.5, alpha = 0.5) +
+  theme_bw() +
+  labs(title = "Estimated distribution of males and females in Seattle",
+       subtitle = "2018 ACS Data",
+       caption = "by Jotunn Ciderhouse") +
+  guides(fill = guide_legend("Each dot equals\n50 people")) +
+  scale_color_discrete(guide = FALSE) +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank()) +
+  annotate(geom = "curve", x = -122.42, y = 47.54,
+           xend = -122.39, yend = 47.57,
+           curvature = -0.3, arrow = arrow(length = unit(2, "mm"))) +
+  annotate(geom = "text", x = -122.42, y = 47.54, label = "west\nseattle", vjust = 1) +
+  annotate(geom = "curve", x = -122.245, y = 47.715,
+           xend = -122.335, yend = 47.68,
+           curvature = -0.3, arrow = arrow(length = unit(2, "mm"))) +
+  annotate(geom = "text", x = -122.245, y = 47.715, label = "green\nlake", vjust = -0.1) +
+  annotate(geom = "curve", x = -122.245, y = 47.62,
+           xend = -122.315, yend = 47.62,
+           curvature = -0.1, arrow = arrow(length = unit(2, "mm"))) +
+  annotate(geom = "text", x = -122.245, y = 47.62, label = "capitol hill", vjust = -0.3) +
+  annotate(geom = "curve", x = -122.25, y = 47.585,
+           xend = -122.27, yend = 47.57,
+           curvature = -0.1, arrow = arrow(length = unit(2, "mm"))) +
+  annotate(geom = "text", x = -122.25, y = 47.585, label = "columbia\ncity", vjust = -0.1) +
+  annotate(geom = "curve", x = -122.24, y = 47.655,
+           xend = -122.295, yend = 47.65,
+           curvature = -0.3, arrow = arrow(length = unit(2, "mm"))) +
+  annotate(geom = "text", x = -122.24, y = 47.655, label = "uw", vjust = -0.3) +
+  annotate(geom = "curve", x = -122.42, y = 47.72,
+           xend = -122.3875, yend = 47.67,
+           curvature = 0.4, arrow = arrow(length = unit(2, "mm"))) +
+  annotate(geom = "text", x = -122.42, y = 47.72, label = "ballard", vjust = -0.3) +
+  annotate(geom = "curve", x = -122.425, y = 47.62,
+           xend = -122.3475, yend = 47.62,
+           curvature = 0.2, arrow = arrow(length = unit(2, "mm"))) +
+  annotate(geom = "text", x = -122.425, y = 47.62, label = "south lake\nunion", vjust = -0.1) +
+  annotate(geom = "curve", x = -122.375, y = 47.605,
+           xend = -122.3475, yend = 47.61,
+           curvature = 0.1, arrow = arrow(length = unit(2, "mm"))) +
+  annotate(geom = "text", x = -122.375, y = 47.605, label = "downtown", hjust = 1.05)
+  
+ggsave("dot_density_sex_seattle.png", height = 9, width = 7)  
 ```
+
+Doing above for 2011
+```{r}
+sea_sex_dots2 <- map(c("total_females", "total_males"), function(group) {
+  sea_years_geo_neigh %>%
+    filter(variable == group, year == 2011) %>%
+    st_sample(., size = round(.$estimate / 50)) %>%
+    st_sf() %>%
+    mutate(group = group)
+  }) %>%
+  reduce(rbind)
+
+sea_sex_dots_shuffle2 <- sample_frac(sea_sex_dots2, size = 1) %>%
+  mutate(group = fct_recode(group, Females = "total_females", Males = "total_males"))
+
+plot(sea_sex_dots_shuffle2, key.pos = 1)
+
+ggplot() +
+  geom_sf(data = sea_years_geo_neigh) +
+  geom_sf(data = sea_sex_dots_shuffle2, aes(color = group, fill = group), size = 0.5, alpha = 0.5) +
+  theme_bw() +
+  labs(title = "Estimated distribution of males and females in Seattle",
+       subtitle = "2011 ACS Data",
+       caption = "by Jotunn Ciderhouse") +
+  guides(fill = guide_legend("Each dot equals\n50 people")) +
+  scale_color_discrete(guide = FALSE) +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank()) +
+  annotate(geom = "curve", x = -122.42, y = 47.54,
+           xend = -122.39, yend = 47.57,
+           curvature = -0.3, arrow = arrow(length = unit(2, "mm"))) +
+  annotate(geom = "text", x = -122.42, y = 47.54, label = "west\nseattle", vjust = 1) +
+  annotate(geom = "curve", x = -122.245, y = 47.715,
+           xend = -122.335, yend = 47.68,
+           curvature = -0.3, arrow = arrow(length = unit(2, "mm"))) +
+  annotate(geom = "text", x = -122.245, y = 47.715, label = "green\nlake", vjust = -0.1) +
+  annotate(geom = "curve", x = -122.245, y = 47.62,
+           xend = -122.315, yend = 47.62,
+           curvature = -0.1, arrow = arrow(length = unit(2, "mm"))) +
+  annotate(geom = "text", x = -122.245, y = 47.62, label = "capitol hill", vjust = -0.3) +
+  annotate(geom = "curve", x = -122.25, y = 47.585,
+           xend = -122.27, yend = 47.57,
+           curvature = -0.1, arrow = arrow(length = unit(2, "mm"))) +
+  annotate(geom = "text", x = -122.25, y = 47.585, label = "columbia\ncity", vjust = -0.1) +
+  annotate(geom = "curve", x = -122.24, y = 47.655,
+           xend = -122.295, yend = 47.65,
+           curvature = -0.3, arrow = arrow(length = unit(2, "mm"))) +
+  annotate(geom = "text", x = -122.24, y = 47.655, label = "uw", vjust = -0.3) +
+  annotate(geom = "curve", x = -122.42, y = 47.72,
+           xend = -122.3875, yend = 47.67,
+           curvature = 0.4, arrow = arrow(length = unit(2, "mm"))) +
+  annotate(geom = "text", x = -122.42, y = 47.72, label = "ballard", vjust = -0.3) +
+  annotate(geom = "curve", x = -122.425, y = 47.62,
+           xend = -122.3475, yend = 47.62,
+           curvature = 0.2, arrow = arrow(length = unit(2, "mm"))) +
+  annotate(geom = "text", x = -122.425, y = 47.62, label = "south lake\nunion", vjust = -0.1) +
+  annotate(geom = "curve", x = -122.375, y = 47.605,
+           xend = -122.3475, yend = 47.61,
+           curvature = 0.1, arrow = arrow(length = unit(2, "mm"))) +
+  annotate(geom = "text", x = -122.375, y = 47.605, label = "downtown", hjust = 1.05)
+```
+
+
+Redid moving bar chart from above, but have it changing for sex as well now
+```{r}
+bar_anim <- sea_years_geo_neigh %>%
+  filter(variable == "total_males" | variable == "total_females", tract %in% top10_count_each_year) %>%
+#  group_by(year) %>%
+ # mutate(rank = rank(-estimate),
+ #        est_label = as.character(round(estimate))) %>%
+#  ungroup() %>%
+  mutate(tract = paste0("Tract ", tract, "\n(", cra_name, ")")) %>%
+  ggplot() +
+  geom_col(aes(x = tract, y = estimate, fill = variable), position = "stack") +
+#  geom_text(aes(x = rank, y = estimate, label = paste0("Tract ", tract, " (", cra_name, ")")), size = 6, color = "white", hjust = 1.05) +
+  coord_flip() +
+#  scale_x_reverse() +
+  theme_classic() +
+  labs(title = "Seattle: {closest_state}", x = "", y = "ACS population count estimate",
+       caption = "by Jotunn Ciderhouse") +
+  scale_fill_discrete(name = "",
+                      breaks = c("total_females", "total_males"),
+                      labels = c("Females", "Males")) +
+  theme(legend.position = "bottom",
+        axis.ticks.y = element_blank(),
+      #  axis.text.y = element_blank(),
+        plot.title = element_text(hjust = 0.5, size = 32),
+        plot.margin = margin(0.5, 2, 0.5, 0.5, "cm"),
+        axis.text.x = element_text(size = 18),
+        axis.title.x = element_text(size = 18),
+      axis.text.y = element_text(size = 14),
+      legend.text = element_text(size = 14)) +
+  transition_states(year, transition_length = 2, state_length = 1) +
+  ease_aes("cubic-in-out")
+
+animate(bar_anim, height = 800, width = 500, nframes = 200)
+
+anim_save("top10_count_sea_neighborhoods_by_sex.gif")
+```
+
+
 
 ## density
 thinking of doing a dot plot that moves or grows? could do a line plot
+```{r}
+# calculating density
+sea_years_geo_neigh$area <- st_area(sea_years_geo_neigh)
+
+# gives it in square meters, want normal talk
+sea_density <- sea_years_geo_neigh %>%
+  filter(variable == "total_count") %>%
+  mutate(sq_mi = as.numeric(area / 2.59e6),
+         density = estimate / sq_mi)
+
+sea_density %>%
+  group_by(year) %>%
+  arrange(-density)
+
+sea_density %>%
+  filter(year == 2011 | year == 2018) %>%
+  ggplot(aes(x = density, y = fct_reorder(tract, density, max), color = as.factor(year))) +
+  geom_point()
+
+#nimbys vs yimbys
+sea_density %>%
+  st_drop_geometry() %>%
+  filter(year == 2011 | year == 2018) %>%
+  select(-moe, -estimate) %>%
+  spread(key = "year", value = "density") %>%
+  mutate(density_diff = `2018` - `2011`)
+  ggplot(aes(x = density, y = fct_reorder(tract, density, max), color = as.factor(year))) +
+  geom_point()
+
+sea_density %>%
+  ggplot() +
+    geom_line(aes(x = year, y = density, group = tract))
+
+
+```
+

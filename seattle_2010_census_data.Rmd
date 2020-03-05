@@ -1,8 +1,13 @@
 ---
 title: "Seattle 2010 Census Data"
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file,
+ encoding=encoding,
+ output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
 author: "jotunnch"
 date: "December 30, 2019"
-output: github_document
+output: html_document
 ---
 
 ```{r}
@@ -33,11 +38,11 @@ Set up the table ids
 ```{r}
 guyvars <- c(paste0("P01200", 3:9), paste0("P0120", 10:25))
 
-galvars
+#galvars
 
 guy_sumvars <- c("P012001", "P012002")
 
-gal_sumvars
+#gal_sumvars
 ```
 
 Get the data
@@ -188,11 +193,16 @@ sea_neighs_mage2 %>%
   labs(fill = "age")
 
 king_mage2_clean %>%
-  ggplot(aes(fill = value)) +
-  geom_sf() +
+  ggplot() +
+  geom_sf(aes(fill = value)) +
   scale_fill_viridis_c() +
   theme_bw() +
-  labs(fill = "age")
+  labs(fill = "median\nage",
+       title = "Can We Make a Map Without Push-Pins?",
+       subtitle = "2010 Census Data: King County",
+       caption = "By Jotunn Ciderhouse")
+
+ggsave("king_county_age_test_run.png", width = 8, height = 5.5)
 ```
 
 ```{r}
